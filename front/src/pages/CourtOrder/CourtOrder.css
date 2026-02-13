@@ -1,0 +1,52 @@
+.court-order-form {
+    max-width: 900px;
+    padding: 20px 0;
+}
+
+.court-order-form__section {
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+}
+
+.court-order-form__legend {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    padding: 0 8px;
+}
+
+.court-order-form__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+}
+
+.court-order-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.court-order-form__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary, #666);
+}
+
+.court-order-form__field .input {
+    width: 100%;
+}
+
+.court-order-form__actions {
+    display: flex;
+    align-items: center;
+    padding-top: 8px;
+}
+
+@media (max-width: 768px) {
+    .court-order-form__grid {
+        grid-template-columns: 1fr;
+    }
+}

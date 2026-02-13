@@ -1,0 +1,324 @@
+name: Pull Request Checks (Multi-Tenant)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - 'community/**'
+
+jobs:
+  # ==================== DETECT TARGET ====================
+  detect-target:
+    name: Detect Target Community
+    runs-on: ubuntu-latest
+    outputs:
+      target-community: ${{ steps.detect.outputs.target-community }}
+      is-community-pr: ${{ steps.detect.outputs.is-community-pr }}
+      source-branch: ${{ steps.detect.outputs.source-branch }}
+
+    steps:
+      - name: 🔍 Detect PR target
+        id: detect
+        run: |
+          TARGET_BRANCH="${{ github.base_ref }}"
+          SOURCE_BRANCH="${{ github.head_ref }}"
+
+          echo "source-branch=$SOURCE_BRANCH" >> $GITHUB_OUTPUT
+
+          if [[ "$TARGET_BRANCH" == community/* ]]; then
+            COMMUNITY=$(echo "$TARGET_BRANCH" | sed 's/community\///')
+            echo "target-community=$COMMUNITY" >> $GITHUB_OUTPUT
+            echo "is-community-pr=true" >> $GITHUB_OUTPUT
+            echo "📍 PR targets community: $COMMUNITY"
+          else
+            echo "is-community-pr=false" >> $GITHUB_OUTPUT
+            echo "📍 PR targets main branch (shared codebase)"
+          fi
+
+  # ==================== PR TITLE CHECK ====================
+  pr-title-check:
+    name: Check PR Title
+    runs-on: ubuntu-latest
+    needs: detect-target
+
+    steps:
+      - name: 🏷️ Validate PR Title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            chore
+            community
+          # Додаємо scope для community
+          scopes: |
+            kyiv
+            lviv
+            odesa
+            kharkiv
+            dnipro
+            zaporizhzhia
+            core
+            shared
+          requireScope: false
+          subjectPattern: ^[A-Z].+$
+          subjectPatternError: |
+            Subject must start with uppercase letter.
+            Examples:
+            - "feat(kyiv): Add new payment method"
+            - "fix(shared): Correct authentication bug"
+            - "community: Setup Lviv instance"
+
+  # ==================== CODE QUALITY ====================
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    needs: detect-target
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📊 Backend Code Quality
+        run: |
+          cd back
+          npm ci
+          npm run test:coverage
+        continue-on-error: true
+
+      - name: 📊 Frontend Code Quality
+        run: |
+          cd front
+          npm ci
+          npm run lint
+          npm run test:coverage
+        continue-on-error: true
+
+  # ==================== COMMUNITY CONFIG CHECK ====================
+  community-config-check:
+    name: Community Configuration Check
+    runs-on: ubuntu-latest
+    needs: detect-target
+    if: needs.detect-target.outputs.is-community-pr == 'true'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check community configuration
+        env:
+          COMMUNITY: ${{ needs.detect-target.outputs.target-community }}
+        run: |
+          echo "🔍 Checking configuration for community: $COMMUNITY"
+
+          COMMUNITY_NORMALIZED=$(echo "$COMMUNITY" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+          CONFIG_FILE=".github/communities/$COMMUNITY_NORMALIZED.json"
+
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "⚠️ WARNING: Configuration file not found: $CONFIG_FILE"
+            echo "Creating example configuration..."
+
+            mkdir -p .github/communities
+
+            cat > "$CONFIG_FILE" << 'EOF'
+          {
+            "name": "COMMUNITY_NAME",
+            "display_name": "Community Display Name",
+            "server": {
+              "host": "Required in GitHub Secrets",
+              "port": 22,
+              "deploy_path": "/home/bot/adminka",
+              "pm2_app_name": "adminka",
+              "ssh_user": "bot"
+            },
+            "database": {
+              "host": "localhost",
+              "port": 5432,
+              "name": "COMMUNITY_NORMALIZED"
+            },
+            "urls": {
+              "app": "https://admin.COMMUNITY.skydatagroup.com"
+            },
+            "features": {
+              "enable_sms": true,
+              "enable_email": true,
+              "enable_payments": true
+            }
+          }
+          EOF
+
+            echo "📄 Example configuration created at: $CONFIG_FILE"
+            echo "❌ Please configure this file before deployment"
+            exit 1
+          else
+            echo "✅ Configuration file exists: $CONFIG_FILE"
+
+            # Валідація JSON
+            if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
+              echo "❌ Invalid JSON in configuration file"
+              exit 1
+            fi
+
+            echo "✅ Configuration is valid JSON"
+
+            # Виводимо конфігурацію (без секретів)
+            echo "📋 Configuration preview:"
+            jq '.' "$CONFIG_FILE"
+          fi
+
+      - name: 📝 Community setup checklist
+        if: always()
+        env:
+          COMMUNITY: ${{ needs.detect-target.outputs.target-community }}
+        run: |
+          echo "## 📋 Community Setup Checklist for: $COMMUNITY" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### GitHub Secrets Required:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          COMMUNITY_UPPER=$(echo "$COMMUNITY" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+
+          echo "- \`${COMMUNITY_UPPER}_SSH_HOST\` - Server IP or domain" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${COMMUNITY_UPPER}_SSH_USER\` - SSH user (bot)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${COMMUNITY_UPPER}_SSH_PRIVATE_KEY\` - SSH private key" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${COMMUNITY_UPPER}_SSH_PORT\` - SSH port (optional, default: 22)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${COMMUNITY_UPPER}_APP_URL\` - Application URL for health checks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Optional Secrets:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${COMMUNITY_UPPER}_SLACK_WEBHOOK\` - Slack notifications" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📖 See [MULTITENANT_SETUP.md](.github/MULTITENANT_SETUP.md) for details" >> $GITHUB_STEP_SUMMARY
+
+  # ==================== BUNDLE SIZE ====================
+  bundle-size-check:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install & Build Frontend
+        run: |
+          cd front
+          npm ci
+          npm run build
+
+      - name: 📏 Check Bundle Size
+        run: |
+          cd front
+          BUILD_SIZE=$(du -sh dist | cut -f1)
+          echo "📦 Build size: $BUILD_SIZE"
+
+          MAX_SIZE_MB=10
+          ACTUAL_SIZE_MB=$(du -sm dist | cut -f1)
+
+          if [ $ACTUAL_SIZE_MB -gt $MAX_SIZE_MB ]; then
+            echo "❌ Bundle size ($ACTUAL_SIZE_MB MB) exceeds limit ($MAX_SIZE_MB MB)"
+            exit 1
+          else
+            echo "✅ Bundle size is within limits ($ACTUAL_SIZE_MB MB / $MAX_SIZE_MB MB)"
+          fi
+
+  # ==================== DEPENDENCY REVIEW ====================
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+
+  # ==================== COMMENT PR ====================
+  comment-pr:
+    name: Comment PR Results
+    runs-on: ubuntu-latest
+    needs: [detect-target, code-quality, bundle-size-check, community-config-check]
+    if: always()
+
+    steps:
+      - name: 💬 Comment PR with results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = {
+              codeQuality: '${{ needs.code-quality.result }}',
+              bundleSize: '${{ needs.bundle-size-check.result }}',
+              communityConfig: '${{ needs.community-config-check.result }}'
+            };
+
+            const isCommunityPR = '${{ needs.detect-target.outputs.is-community-pr }}' === 'true';
+            const targetCommunity = '${{ needs.detect-target.outputs.target-community }}';
+
+            const emoji = (status) => {
+              if (status === 'success') return '✅';
+              if (status === 'failure') return '❌';
+              if (status === 'skipped') return '⏭️';
+              return '⚠️';
+            };
+
+            let comment = `## 🤖 PR Check Results\n\n`;
+
+            if (isCommunityPR) {
+              comment += `**Target Community:** \`${targetCommunity}\`\n\n`;
+            } else {
+              comment += `**Target:** Main branch (shared codebase)\n\n`;
+            }
+
+            comment += `| Check | Status |\n`;
+            comment += `|-------|--------|\n`;
+            comment += `| Code Quality | ${emoji(results.codeQuality)} ${results.codeQuality} |\n`;
+            comment += `| Bundle Size | ${emoji(results.bundleSize)} ${results.bundleSize} |\n`;
+
+            if (isCommunityPR) {
+              comment += `| Community Config | ${emoji(results.communityConfig)} ${results.communityConfig} |\n`;
+            }
+
+            comment += `\n`;
+
+            const hasFailures = Object.values(results).some(r => r === 'failure');
+
+            if (hasFailures) {
+              comment += `⚠️ **Some checks failed.** Please review the details above.\n`;
+            } else {
+              comment += `✅ **All checks passed!** Ready to merge.\n`;
+            }
+
+            if (isCommunityPR) {
+              comment += `\n---\n`;
+              comment += `📖 **Deployment Info:**\n`;
+              comment += `- Merging this PR will trigger automatic deployment to **${targetCommunity}**\n`;
+              comment += `- Check [CD Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/workflows/cd-multitenant.yml) for deployment status\n`;
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

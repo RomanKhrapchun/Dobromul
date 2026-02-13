@@ -1,0 +1,446 @@
+name: Initialize New Community
+
+on:
+  workflow_dispatch:
+    inputs:
+      community_name:
+        description: 'Community name (e.g., kyiv, lviv, odesa)'
+        required: true
+        type: string
+      display_name:
+        description: 'Display name (e.g., Київська громада)'
+        required: true
+        type: string
+      server_host:
+        description: 'Server IP or domain'
+        required: true
+        type: string
+      create_branch:
+        description: 'Create community branch?'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  # ==================== VALIDATE INPUT ====================
+  validate:
+    name: Validate Input
+    runs-on: ubuntu-latest
+    outputs:
+      normalized-name: ${{ steps.normalize.outputs.normalized }}
+      upper-name: ${{ steps.normalize.outputs.upper }}
+
+    steps:
+      - name: 🔍 Validate and normalize community name
+        id: normalize
+        run: |
+          NAME="${{ github.event.inputs.community_name }}"
+
+          # Перевірка на допустимі символи
+          if ! [[ "$NAME" =~ ^[a-zA-Z0-9-]+$ ]]; then
+            echo "❌ Community name can only contain letters, numbers, and hyphens"
+            exit 1
+          fi
+
+          # Нормалізація
+          NORMALIZED=$(echo "$NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
+          UPPER=$(echo "$NAME" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+
+          echo "normalized=$NORMALIZED" >> $GITHUB_OUTPUT
+          echo "upper=$UPPER" >> $GITHUB_OUTPUT
+
+          echo "✅ Community name validated"
+          echo "📍 Normalized: $NORMALIZED"
+          echo "📍 Upper: $UPPER"
+
+  # ==================== CREATE CONFIGURATION ====================
+  create-config:
+    name: Create Community Configuration
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📝 Create configuration file
+        env:
+          COMMUNITY: ${{ needs.validate.outputs.normalized-name }}
+          DISPLAY_NAME: ${{ github.event.inputs.display_name }}
+          SERVER_HOST: ${{ github.event.inputs.server_host }}
+        run: |
+          mkdir -p .github/communities
+
+          CONFIG_FILE=".github/communities/$COMMUNITY.json"
+
+          cat > "$CONFIG_FILE" << EOF
+          {
+            "name": "$COMMUNITY",
+            "display_name": "$DISPLAY_NAME",
+            "created_at": "$(date -Iseconds)",
+            "server": {
+              "host": "$SERVER_HOST",
+              "port": 22,
+              "deploy_path": "/home/bot/adminka",
+              "pm2_app_name": "adminka",
+              "ssh_user": "bot"
+            },
+            "database": {
+              "host": "localhost",
+              "port": 5432,
+              "name": "$COMMUNITY"
+            },
+            "urls": {
+              "app": "https://admin.$COMMUNITY.skydatagroup.com"
+            },
+            "features": {
+              "enable_sms": true,
+              "enable_email": true,
+              "enable_payments": true,
+              "enable_notifications": true
+            },
+            "integrations": {
+              "telegram_bot": "",
+              "viber_bot": "",
+              "payment_gateway": "default"
+            },
+            "limits": {
+              "max_users": 100000,
+              "max_debts": 50000,
+              "storage_gb": 10
+            }
+          }
+          EOF
+
+          echo "✅ Configuration created: $CONFIG_FILE"
+          cat "$CONFIG_FILE"
+
+      - name: 📝 Create environment template
+        env:
+          COMMUNITY: ${{ needs.validate.outputs.normalized-name }}
+        run: |
+          mkdir -p .github/communities
+
+          ENV_FILE=".github/communities/$COMMUNITY.env.example"
+
+          cat > "$ENV_FILE" << 'EOF'
+          # Environment variables for COMMUNITY_NAME community
+
+          # Database
+          DB_HOST=localhost
+          DB_PORT=5432
+          DB_USERNAME=adminbot
+          DB_PASSWORD=CHANGE_THIS_PASSWORD
+          DB_DATABASE=COMMUNITY
+
+          # Redis
+          REDIS_HOST=localhost
+          REDIS_PORT=6379
+
+          # Application
+          NODE_ENV=production
+          PORT=3020
+
+          # Security
+          JWT_SECRET=GENERATE_SECURE_JWT_SECRET
+          SESSION_SECRET=GENERATE_SECURE_SESSION_SECRET
+
+          # Community specific
+          COMMUNITY_NAME=COMMUNITY_NAME
+          COMMUNITY_DISPLAY_NAME=COMMUNITY_DISPLAY_NAME
+
+          # External services (optional)
+          TELEGRAM_BOT_TOKEN=
+          VIBER_BOT_TOKEN=
+          PAYMENT_GATEWAY_KEY=
+          EOF
+
+          # Замінюємо плейсхолдери
+          sed -i "s/COMMUNITY_NAME/$COMMUNITY/g" "$ENV_FILE"
+          sed -i "s/COMMUNITY_DISPLAY_NAME/${{ github.event.inputs.display_name }}/g" "$ENV_FILE"
+
+          echo "✅ Environment template created: $ENV_FILE"
+
+      - name: 📝 Create setup checklist
+        env:
+          COMMUNITY: ${{ needs.validate.outputs.normalized-name }}
+          UPPER: ${{ needs.validate.outputs.upper-name }}
+        run: |
+          CHECKLIST_FILE=".github/communities/$COMMUNITY-SETUP.md"
+
+          cat > "$CHECKLIST_FILE" << 'EOF'
+          # Setup Checklist for COMMUNITY_NAME
+
+          ## 📋 Initial Setup
+
+          ### 1. GitHub Secrets
+          Add these secrets in **Settings → Secrets → Actions**:
+
+          - [ ] `UPPER_SSH_HOST` = Server IP/domain
+          - [ ] `UPPER_SSH_USER` = bot
+          - [ ] `UPPER_SSH_PRIVATE_KEY` = SSH private key
+          - [ ] `UPPER_SSH_PORT` = SSH port (optional, default 22)
+          - [ ] `UPPER_APP_URL` = Application URL
+
+          ### 2. Server Preparation
+
+          ```bash
+          # Ensure bot user has necessary permissions
+          # (assuming bot user already exists)
+
+          # Create directories if they don't exist
+          sudo mkdir -p /home/bot/adminka/backend
+          sudo mkdir -p /home/bot/adminka/frontend
+          sudo chown -R bot:bot /home/bot/adminka
+
+          # Setup SSH key for bot user
+          ssh-copy-id bot@SERVER_HOST
+          ```
+
+          ### 3. Database Setup
+
+          ```sql
+          -- Create database (named after community)
+          CREATE DATABASE COMMUNITY_NAME;
+
+          -- Grant privileges to adminbot user
+          GRANT ALL PRIVILEGES ON DATABASE COMMUNITY_NAME TO adminbot;
+          ```
+
+          ### 4. Environment Variables
+
+          ```bash
+          # Copy environment template
+          cp .github/communities/COMMUNITY_NAME.env.example /home/bot/adminka/backend/.env
+
+          # Edit with actual values
+          nano /home/bot/adminka/backend/.env
+          ```
+
+          ### 5. Nginx Configuration
+
+          Create `/etc/nginx/sites-available/admin.COMMUNITY_NAME.skydatagroup.com`:
+
+          ```nginx
+          server {
+              server_name admin.COMMUNITY_NAME.skydatagroup.com;
+
+              set $CSP_SCRIPT_SRC_ELEM "'self' 'nonce-$request_id'";
+              set $CSP_SCRIPT_SRC "'self' 'nonce-$request_id'";
+              set $CSP_STYLE_SRC "'self' 'nonce-$request_id'";
+              set $CSP_CONNECT_SRC "'self' https://www.google-analytics.com";
+
+              add_header X-XSS-Protection "1; mode=block";
+              add_header X-Permitted-Cross-Domain-Policies "none";
+              add_header X-Frame-Options "DENY";
+              add_header X-Download-Options "noopen";
+              add_header X-Dns-Prefetch-Control "off";
+              add_header X-Content-Type-Options "nosniff";
+              add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
+              add_header Referrer-Policy "origin-when-cross-origin";
+              add_header Cross-Origin-Resource-Policy "same-origin";
+              add_header Cross-Origin-Opener-Policy "same-origin";
+              add_header Cross-Origin-Embedder-Policy "require-corp";
+
+              add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data: https:; object-src 'none'; script-src $CSP_SCRIPT_SRC; script-src-attr 'none'; script-src-elem $CSP_SCRIPT_SRC_ELEM; style-src $CSP_STYLE_SRC; connect-src $CSP_CONNECT_SRC; upgrade-insecure-requests;";
+
+              server_tokens off;
+
+              gzip on;
+              gzip_proxied expired no-cache no-store private;
+              gzip_disable "msie6";
+              gzip_vary on;
+              gzip_comp_level 6;
+              gzip_buffers 16 8k;
+              gzip_http_version 1.1;
+              gzip_min_length 0;
+              gzip_types text/plain application/javascript text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript application/vnd.ms-fontobject application/x-font-ttf font/opentype;
+
+              client_body_buffer_size 8K;
+              client_max_body_size 20m;
+              client_body_timeout 10s;
+              client_header_buffer_size 1k;
+              large_client_header_buffers 2 16k;
+              client_header_timeout 5s;
+
+              location / {
+                  location ~* \.(?:webp|svg|jpg|jpeg|gif|png|ico|cur|gz|svgz|mp4|mp3|ogg|ogv|webm|htc|woff2|woff|ttf|eot|otf)$ {
+                      expires 1y;
+                      access_log off;
+                      add_header Cache-Control "public, max-age=31536000";
+                  }
+
+                  location ~* \.(?:css)$ {
+                      expires 7d;
+                      access_log off;
+                      add_header Cache-Control "public, max-age=31536000";
+                  }
+
+                  sub_filter_once off;
+                  sub_filter **CSP_NONCE** $request_id;
+
+                  root /home/bot/adminka/frontend;
+                  index index.html index.htm;
+                  try_files $uri $uri/ /index.html =404;
+              }
+
+              location /api {
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header Host $host;
+                  proxy_pass http://localhost:3020;
+              }
+
+              listen 443 ssl;
+              ssl_certificate /etc/letsencrypt/live/admin.COMMUNITY_NAME.skydatagroup.com/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/admin.COMMUNITY_NAME.skydatagroup.com/privkey.pem;
+              include /etc/letsencrypt/options-ssl-nginx.conf;
+              ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+          }
+
+          server {
+              if ($host = admin.COMMUNITY_NAME.skydatagroup.com) {
+                  return 301 https://$host$request_uri;
+              }
+
+              server_name admin.COMMUNITY_NAME.skydatagroup.com;
+              listen 80;
+              return 404;
+          }
+          ```
+
+          Enable site:
+          ```bash
+          sudo ln -s /etc/nginx/sites-available/admin.COMMUNITY_NAME.skydatagroup.com /etc/nginx/sites-enabled/
+          sudo nginx -t && sudo systemctl reload nginx
+          ```
+
+          ### 6. SSL Certificate
+
+          ```bash
+          sudo certbot --nginx -d admin.COMMUNITY_NAME.skydatagroup.com
+          ```
+
+          ## ✅ Verification
+
+          - [ ] Server accessible via SSH
+          - [ ] Database created and accessible
+          - [ ] Environment variables configured
+          - [ ] Nginx configuration active
+          - [ ] SSL certificate installed
+          - [ ] GitHub Secrets added
+          - [ ] Test deployment successful
+
+          ## 🚀 First Deployment
+
+          ```bash
+          # Create community branch
+          git checkout -b community/COMMUNITY_NAME
+
+          # Push to trigger deployment
+          git push origin community/COMMUNITY_NAME
+          ```
+
+          ## 📞 Support
+
+          See [MULTITENANT_SETUP.md](../MULTITENANT_SETUP.md) for detailed instructions.
+          EOF
+
+          # Замінюємо плейсхолдери
+          sed -i "s/COMMUNITY_NAME/$COMMUNITY/g" "$CHECKLIST_FILE"
+          sed -i "s/UPPER/$UPPER/g" "$CHECKLIST_FILE"
+          sed -i "s/SERVER_HOST/${{ github.event.inputs.server_host }}/g" "$CHECKLIST_FILE"
+
+          echo "✅ Setup checklist created: $CHECKLIST_FILE"
+
+      - name: 📤 Commit configuration files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .github/communities/
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "community: Initialize ${{ needs.validate.outputs.normalized-name }} configuration
+
+          - Add community configuration
+          - Add environment template
+          - Add setup checklist
+
+          Community: ${{ github.event.inputs.display_name }}
+          Server: ${{ github.event.inputs.server_host }}"
+
+            git push origin main
+          fi
+
+  # ==================== CREATE BRANCH ====================
+  create-branch:
+    name: Create Community Branch
+    runs-on: ubuntu-latest
+    needs: [validate, create-config]
+    if: github.event.inputs.create_branch == 'true'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 🌿 Create and push community branch
+        env:
+          COMMUNITY: ${{ needs.validate.outputs.normalized-name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Створюємо гілку
+          git checkout -b community/$COMMUNITY
+
+          # Пушимо
+          git push origin community/$COMMUNITY
+
+          echo "✅ Branch created: community/$COMMUNITY"
+
+  # ==================== SUMMARY ====================
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [validate, create-config, create-branch]
+    if: always()
+
+    steps:
+      - name: 📊 Create summary
+        env:
+          COMMUNITY: ${{ needs.validate.outputs.normalized-name }}
+          UPPER: ${{ needs.validate.outputs.upper-name }}
+          DISPLAY_NAME: ${{ github.event.inputs.display_name }}
+        run: |
+          echo "## 🎉 Community Initialization Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Community:** $DISPLAY_NAME (\`$COMMUNITY\`)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Created Files:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`.github/communities/$COMMUNITY.json\` - Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- \`.github/communities/$COMMUNITY.env.example\` - Environment template" >> $GITHUB_STEP_SUMMARY
+          echo "- \`.github/communities/$COMMUNITY-SETUP.md\` - Setup checklist" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ github.event.inputs.create_branch }}" == "true" ]]; then
+            echo "- \`community/$COMMUNITY\` - Git branch" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔐 Required GitHub Secrets:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "${UPPER}_SSH_HOST" >> $GITHUB_STEP_SUMMARY
+          echo "${UPPER}_SSH_USER" >> $GITHUB_STEP_SUMMARY
+          echo "${UPPER}_SSH_PRIVATE_KEY" >> $GITHUB_STEP_SUMMARY
+          echo "${UPPER}_APP_URL" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📖 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review \`.github/communities/$COMMUNITY-SETUP.md\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Add required GitHub Secrets" >> $GITHUB_STEP_SUMMARY
+          echo "3. Prepare server infrastructure" >> $GITHUB_STEP_SUMMARY
+          echo "4. Test deployment to \`community/$COMMUNITY\` branch" >> $GITHUB_STEP_SUMMARY

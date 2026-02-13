@@ -1,0 +1,82 @@
+/* ========================================
+   ChildBenefits - Стилі для форми пільг
+   ======================================== */
+
+/* Форма пільг */
+.benefit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.benefit-form__group {
+    margin-bottom: 0 !important;
+}
+
+.benefit-form__group--half {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Ряд з двома полями (дати) */
+.benefit-form__row {
+    display: flex;
+    gap: 16px;
+}
+
+/* Підказка під полем */
+.benefit-form__hint {
+    display: block;
+    margin-top: 6px;
+    color: #6c757d;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .benefit-form__row {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .benefit-form__group--half {
+        width: 100%;
+    }
+}
+
+/* Стилі для бейджів статусу */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.badge-secondary {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+.badge-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+/* Покращення для Select з пошуком */
+.benefit-form .select-wrapper {
+    position: relative;
+}
+
+.benefit-form .select-dropdown {
+    max-height: 250px;
+    overflow-y: auto;
+}

@@ -1,0 +1,431 @@
+/* ========================================
+   Стилі для сторінки батьківської плати
+   ======================================== */
+
+/* Стилі для кнопок в заголовку таблиці */
+.table-header__buttons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.table-filter-trigger {
+    position: relative;
+}
+
+.table-filter-trigger.has-active-filters {
+    background-color: #1890ff !important;
+    color: white !important;
+    border-color: #1890ff !important;
+}
+
+/* Стилі для dropdown фільтра */
+.table-filter {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+    padding: 16px;
+    min-width: 320px;
+    margin-top: 8px;
+}
+
+.table-filter__item {
+    margin-bottom: 16px;
+}
+
+.table-filter__item:last-child {
+    margin-bottom: 0;
+}
+
+.table-filter h3 {
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.table-filter .btn-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+/* Основні стилі для модального вікна */
+.kindergarten-billing-modal {
+    padding: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Стилі для секцій форми */
+.form-section {
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+}
+
+.form-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Покращені стилі для лейблів */
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #374151;
+    line-height: 1.4;
+}
+
+.required-mark {
+    color: #ef4444;
+    margin-left: 2px;
+}
+
+/* Допоміжний текст */
+.form-help {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+    line-height: 1.3;
+}
+
+/* Виділені секції для важливих полей */
+.form-section--highlighted {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+}
+
+.form-section--highlighted::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+    border-radius: 12px 12px 0 0;
+}
+
+.form-section--highlighted .form-label {
+    color: #1e293b;
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.form-section--highlighted .form-help {
+    color: #475569;
+    font-weight: 500;
+    font-style: normal;
+}
+
+/* Контейнер для полей з валютою */
+.currency-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Стилі для Input полів */
+.kindergarten-billing-modal .currency-input input,
+.kindergarten-billing-modal .month-input input,
+.kindergarten-billing-modal input[type="text"] {
+    font-size: 16px !important;
+    padding: 14px 16px !important;
+    min-height: 52px !important;
+    border: 2px solid #e9ecef !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+    font-family: system-ui, -apple-system, sans-serif !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Input з валютою */
+.currency-input input {
+    text-align: left !important;
+}
+
+/* Фокус на полях */
+.kindergarten-billing-modal input:focus {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+    outline: none !important;
+}
+
+/* Поле місяця - покращене */
+.month-input input {
+    font-weight: 500 !important;
+    color: #495057 !important;
+}
+
+/* Стилі для різних браузерів при роботі з місяцем */
+.month-input input::-webkit-calendar-picker-indicator {
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.month-input input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Hover ефекти */
+.kindergarten-billing-modal input:hover {
+    border-color: #007bff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Стилі для балансу в таблиці */
+.balance-positive {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.balance-negative {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.balance-zero {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Стилі для статусу оплати */
+.payment-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.payment-status--paid {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.payment-status--partial {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.payment-status--overdue {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.payment-status--overpaid {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+/* Анімації */
+.form-section {
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-section--highlighted {
+    animation: slideInUp 0.4s ease-out;
+}
+
+/* Стилі для валідації помилок */
+.kindergarten-billing-modal input:invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+.kindergarten-billing-modal input:valid {
+    border-color: #28a745 !important;
+}
+
+/* Додаткові покращення для UX */
+.form-section:hover {
+    transform: translateY(-2px);
+}
+
+.form-section--highlighted:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Стилі для placeholder'ів */
+.kindergarten-billing-modal input::placeholder {
+    color: #adb5bd;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+.kindergarten-billing-modal input:focus::placeholder {
+    opacity: 0.5;
+}
+
+/* ========================================
+   Виправлення для таблиці
+   ======================================== */
+
+/* Прибираємо підкреслення від заголовків таблиці */
+.table-elements .sortable-header {
+    border-bottom: none !important;
+    text-decoration: none !important;
+}
+
+.table-elements .sortable-header:hover {
+    border-bottom: none !important;
+}
+
+.table-elements .sortable-header.active {
+    border-bottom: none !important;
+}
+
+/* Виправляємо кнопки дій - ставимо в ряд */
+.actions-group {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+.actions-group .btn {
+    flex-shrink: 0;
+}
+
+/* Стилі для колонки балансу */
+.balance-column {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+}
+
+/* Стилі для колонки місяця */
+.month-column {
+    font-weight: 500;
+    color: #495057;
+}
+
+/* Темна тема (опціонально) */
+@media (prefers-color-scheme: dark) {
+    .form-section--highlighted {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        border-color: #495057;
+    }
+    
+    .form-section--highlighted .form-label {
+        color: #e9ecef;
+    }
+    
+    .form-section--highlighted .form-help {
+        color: #adb5bd;
+    }
+}
+
+/* Responsive дизайн */
+@media (max-width: 768px) {
+    .kindergarten-billing-modal {
+        padding: 0 8px;
+    }
+    
+    .form-section--highlighted {
+        padding: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .form-label {
+        font-size: 14px;
+    }
+    
+    .form-section--highlighted .form-label {
+        font-size: 15px;
+    }
+    
+    .form-help {
+        font-size: 11px;
+    }
+    
+    .kindergarten-billing-modal .currency-input input,
+    .kindergarten-billing-modal .month-input input,
+    .kindergarten-billing-modal input[type="text"] {
+        font-size: 15px !important;
+        padding: 12px 14px !important;
+        min-height: 48px !important;
+    }
+
+    .actions-group {
+        flex-direction: column;
+        gap: 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-section {
+        margin-bottom: 20px;
+    }
+    
+    .form-section--highlighted {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .kindergarten-billing-modal .currency-input input,
+    .kindergarten-billing-modal .month-input input,
+    .kindergarten-billing-modal input[type="text"] {
+        font-size: 14px !important;
+        padding: 10px 12px !important;
+        min-height: 44px !important;
+    }
+
+    .balance-column {
+        font-size: 12px;
+    }
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+}
+
+.form-label .required {
+    color: #ff4d4f;
+    margin-left: 4px;
+}
+
+.form-section {
+    margin-bottom: 16px;
+}
+
+.form-section--highlighted {
+    background: #f0f9ff;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.modal-form {
+    padding: 8px 0;
+}

@@ -1,0 +1,293 @@
+/* components/ControlSumsModal/ControlSumsModal.css */
+
+.control-sums-modal .modal-window {
+    max-width: 950px;
+    min-width: auto;
+    width: 100%;
+    padding: 24px;
+}
+
+/* Кастомний scrollbar для модального вікна */
+.control-sums-modal .modal-window::-webkit-scrollbar {
+    width: 8px;
+}
+
+.control-sums-modal .modal-window::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.control-sums-modal .modal-window::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+.control-sums-modal .modal-window::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Кастомний scrollbar для таблиці */
+.budget-codes-table::-webkit-scrollbar {
+    height: 8px;
+}
+
+.budget-codes-table::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.budget-codes-table::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+.budget-codes-table::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.control-sums-content {
+    padding: 0;
+}
+
+.control-sums-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.control-sums-header h3 {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.community-name {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #555;
+}
+
+.community-name strong {
+    color: #2c3e50;
+}
+
+.control-sums-stats {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 24px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.stat-item:not(:last-child) {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.stat-value--amount {
+    color: #e74c3c;
+    font-size: 18px;
+}
+
+.control-sums-details {
+    margin-bottom: 24px;
+}
+
+.control-sums-details h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.budget-codes-table {
+    overflow-x: auto;
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 0;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.budget-codes-table table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+.budget-codes-table th,
+.budget-codes-table td {
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 13px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.budget-codes-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.budget-codes-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.budget-codes-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.budget-name {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.budget-code {
+    color: #6c757d;
+    font-family: 'Courier New', monospace;
+}
+
+.records-count {
+    text-align: center;
+    color: #495057;
+}
+
+.amount {
+    text-align: right;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.iban {
+    color: #2c3e50;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.edrpou {
+    color: #495057;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    font-weight: 500;
+}
+
+.budget-codes-table tfoot {
+    background-color: #f1f3f5;
+    border-top: 2px solid #dee2e6;
+}
+
+.total-row td {
+    padding: 16px;
+    border-bottom: none;
+    font-weight: 600;
+}
+
+.total-row .records-count {
+    text-align: center;
+}
+
+.total-row .amount {
+    text-align: right;
+    color: #e74c3c;
+    font-size: 15px;
+}
+
+.total-row .empty-cell {
+    background-color: transparent;
+}
+
+.control-sums-footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid #e0e0e0;
+}
+
+.warning-text {
+    margin: 0;
+    padding: 14px 16px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-left: 4px solid #ffc107;
+    color: #856404;
+    font-size: 13px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-state p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+/* Адаптивність */
+@media (max-width: 768px) {
+    .control-sums-modal .modal-window {
+        max-width: 95%;
+        padding: 16px;
+    }
+    
+    .budget-codes-table {
+        overflow-x: scroll;
+    }
+    
+    .budget-codes-table th,
+    .budget-codes-table td {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+    
+    .iban {
+        font-size: 10px;
+    }
+}

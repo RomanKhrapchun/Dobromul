@@ -1,0 +1,106 @@
+.tax-reports__controls {
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.view-selector {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.view-selector__option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 8px;
+}
+
+.view-selector__option input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.view-selector__option span {
+    user-select: none;
+}
+
+.tax-reports__empty {
+    padding: 40px;
+    text-align: center;
+    color: #999;
+    font-style: italic;
+}
+
+/* Стилі для модального вікна фільтра - збільшена висота та прикріплення кнопок донизу */
+.tax-reports-filter-modal .modal-window {
+    min-height: 400px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden !important; /* Прибираємо прокрутку модального вікна */
+}
+
+.tax-reports-filter-modal .modal-window__title {
+    flex-shrink: 0;
+}
+
+/* Контент модального вікна між заголовком і кнопками */
+.tax-reports-filter-modal .modal-window > div:not(.modal-window__bottom):not(.modal-window__title) {
+    flex: 1;
+    overflow: hidden; /* Прибираємо прокрутку контенту */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.tax-reports-filter-modal .modal-window__bottom {
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+.tax-reports-filter-modal .select {
+    max-width: 100%;
+    width: 100%;
+}
+
+/* Максимум 3 елементи видно в випадаючому меню */
+.tax-reports-filter-modal .select__options {
+    max-height: 120px; /* ~3 елементи по ~40px */
+    overflow-y: auto;
+}
+
+/* Фікс для кнопок - щоб розтягувалися в ширину, а не в висоту */
+.table-header__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mg-sm);
+    align-items: center;
+}
+
+.table-header__buttons .dropdown-wrapper {
+    width: auto;
+    min-width: fit-content;
+}
+
+.table-header__buttons .dropdown-wrapper .btn {
+    height: auto;
+    min-height: 40px;
+    white-space: nowrap;
+}
+
+/* Фікс для тексту в dropdown меню - щоб не переносився */
+.table-header__buttons .dropdown {
+    max-width: none;
+    min-width: max-content;
+}
+
+.table-header__buttons .dropdown__item {
+    white-space: nowrap;
+}
+
+.table-header__buttons .dropdown__item > span {
+    white-space: nowrap;
+}
