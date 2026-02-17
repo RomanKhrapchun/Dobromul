@@ -547,6 +547,10 @@ const createRequisiteWord = async (body, requisite) => {
             );
         }
 
+        const communityName = process.env.COMMUNITY_NAME?.toLowerCase();
+        const isDobromyl = communityName === 'dobromyl';
+        const isSlavsk = communityName === 'slavsk';
+
         const patches = {
             next: { type: PatchType.DOCUMENT, children },
             name: {
@@ -574,7 +578,7 @@ const createRequisiteWord = async (body, requisite) => {
                 type: PatchType.DOCUMENT,
                 children: [
                     createParagraph(
-                        `          ${territory_title} повідомляє, що відповідно до даних ГУ ДПС у ${GU_DPS_region}, станом ${formatDate(body.date)} у Вас наявна заборгованість до бюджету ${territory_title_instrumental}, а саме:`,
+                        `          ${isSlavsk ? 'Фінансовий відділ Славської селищної ради' : territory_title} повідомляє, що відповідно до даних ГУ ДПС у ${GU_DPS_region}, станом ${formatDate(body.date)} у Вас наявна заборгованість до бюджету ${territory_title_instrumental}, а саме:`,
                         { size: FONT_CONFIG.sizes.large }
                     )
                 ],
@@ -603,7 +607,14 @@ const createRequisiteWord = async (body, requisite) => {
                     createParagraph(
                         `Загальна сума боргу по всіх платежах: ${totalAmount.toFixed(2)} грн`,
                         { size: FONT_CONFIG.sizes.small, bold: true }
-                    )
+                    ),
+                    ...(isDobromyl ? [
+                        new Paragraph({ children: [new TextRun({ text: " " })] }),
+                        createParagraph(
+                            "Увага! Нарахування сум податків здійснює Центр обслуговування платників Самбірської податкової інспекції, місто Самбір, вулиця Чорновола, 2а",
+                            { size: FONT_CONFIG.sizes.medium, bold: true }
+                        )
+                    ] : [])
                 ],
             },
             ...(await createFooterPatches())

@@ -10,7 +10,7 @@ const Logger = require("../../../utils/logger")
 const axios = require('axios')
 const rabbitmqClient = require('../../../helpers/rabbitmq');
 const communityValidator = require('../../../utils/communityValidator');
-const communitySettingsService = require('../../community_settings/service/communitySettings-service');
+const communitySettingsRepository = require('../../community_settings/repository/communitySettings-repository');
 
 const EDR_CONFIG = {
     BASE_URL: process.env.REMOTE_SERVER_ADDRESS, // Ваша IP адреса Windows
@@ -19,16 +19,27 @@ const EDR_CONFIG = {
 };
 class DebtorService {
     /**
-     * Отримує community_name з кешованих налаштувань або .env (fallback)
+     * Отримує community_name з БД (пріоритет) або з .env (fallback)
      * @returns {Promise<string>}
      */
     async getCommunityName() {
-        const communityName = await communitySettingsService.getCommunityName();
-        if (communityName) {
-            return communityName;
+        try {
+            // Спочатку пробуємо взяти з БД
+            const settings = await communitySettingsRepository.getSettings();
+            if (settings && settings.community_name) {
+                Logger.info('community_name отримано з БД', { communityName: settings.community_name });
+                return settings.community_name;
+            }
+        } catch (error) {
+            Logger.warn('Не вдалося отримати community_name з БД, використовуємо .env', {
+                error: error.message
+            });
         }
+
         // Fallback до .env
-        return process.env.COMMUNITY_NAME;
+        const envCommunityName = process.env.COMMUNITY_NAME;
+        Logger.info('community_name отримано з .env', { communityName: envCommunityName });
+        return envCommunityName;
     }
 
     async getDebtByDebtorId(request) {
@@ -53,8 +64,8 @@ class DebtorService {
             fieldsToFetch
         });
 
-        // Отримання основних даних (shouldIncludeAddress = isDobromyl)
-        const fetchData = await debtorRepository.getDebtByDebtorId(debtorId, fieldsToFetch, isDobromyl)
+        // Отримання основних даних
+        const fetchData = await debtorRepository.getDebtByDebtorId(debtorId, fieldsToFetch)
 
         if (!fetchData?.length) {
             throw new Error('Дані боржника не знайдено')
@@ -677,8 +688,7 @@ extractPhoneFromEdrData(edrData) {
             allowedFields,
             debtorFields,       // Використовуємо поля залежно від громади
             validSortBy,
-            validSortDirection,
-            isDobromyl          // shouldIncludeAddress - JOIN з ower.address тільки для dobromyl
+            validSortDirection
         );
         if (title || whereConditions?.identification) {
             try {
@@ -733,8 +743,7 @@ extractPhoneFromEdrData(edrData) {
             {},     // whereConditions - без фільтрів, відфільтруємо потім
             debtorFields,
             'total_debt',  // sortBy
-            'desc',        // sortDirection
-            isDobromyl     // shouldIncludeAddress - JOIN з ower.address тільки для dobromyl
+            'desc'         // sortDirection
         );
 
         // result[0].data містить масив боржників
@@ -773,14 +782,9 @@ extractPhoneFromEdrData(edrData) {
             // Отримуємо повний ІПН через Worker та форматуємо
             const formattedIPN = await this._getFormattedFullIPN(fetchData[0].name, fetchData[0].identification);
 
-            // Отримуємо адресу боржника з ower.address тільки для dobromyl
-            const communityName = await this.getCommunityName();
-            const isDobromyl = communityName?.toLowerCase() === 'dobromyl';
-            let debtorAddress = '';
-            if (isDobromyl) {
-                const addressData = await debtorRepository.getAddressByDebtor(fetchData[0].name, fetchData[0].identification);
-                debtorAddress = addressData?.address || '';
-            }
+            // Отримуємо адресу боржника з ower.address
+            const addressData = await debtorRepository.getAddressByDebtor(fetchData[0].name, fetchData[0].identification);
+            const debtorAddress = addressData?.address || '';
 
             // Оновлюємо дані боржника з форматованим ІПН та адресою
             const debtorDataWithFullIPN = {
@@ -876,14 +880,28 @@ extractPhoneFromEdrData(edrData) {
         if (fetchData[0].non_residential_debt || fetchData[0].residential_debt || fetchData[0].land_debt > 0 || fetchData[0].orenda_debt || fetchData[0].mpz) {
             const result = addRequisiteToLandDebt(fetchData[0], fetchRequisite[0]);
 
+            // Додаємо спеціальні повідомлення для певних громад
+            const communityName = await this.getCommunityName();
+            const isDobromyl = communityName?.toLowerCase() === 'dobromyl';
+            const isSlavsk = communityName?.toLowerCase() === 'slavsk';
+            
+            // Для Добромиля - текст про Самбірську податкову
+            if (isDobromyl && result.length > 0) {
+                result[result.length - 1].sambir_notice = "Увага! Нарахування сум податків здійснює Центр обслуговування платників Самбірської податкової інспекції, місто Самбір, вулиця Чорновола, 2а";
+            }
+            
+            // Для Славська - змінюємо назву відправника
+            if (isSlavsk && result.length > 0) {
+                result[result.length - 1].custom_sender = "Фінансовий відділ Славської селищної ради";
+            }
+
             // Отримуємо повний ІПН через Worker та форматуємо
             const formattedIPN = await this._getFormattedFullIPN(fetchData[0].name, fetchData[0].identification);
 
             // Отримуємо адресу боржника з ower.address тільки для dobromyl
-            const communityName = await this.getCommunityName();
-            const isDobromyl = communityName?.toLowerCase() === 'dobromyl';
+            const isDobromylAddress = communityName?.toLowerCase() === 'dobromyl';
             let debtorAddress = '';
-            if (isDobromyl) {
+            if (isDobromylAddress) {
                 const addressData = await debtorRepository.getAddressByDebtor(fetchData[0].name, fetchData[0].identification);
                 debtorAddress = addressData?.address || '';
             }
@@ -912,21 +930,6 @@ extractPhoneFromEdrData(edrData) {
         }
 
         throw new Error("Немає даних для формування документу.")
-    }
-
-    async getDebtorCallsByIdentifier(request) {
-        const identifier = request?.params?.id || request?.params?.personName;
-    
-        if (!identifier) {
-            throw new Error('Debtor ID or person name is required');
-        }
-
-        try {
-            return await debtorRepository.getCallsByIdentifier(identifier);
-        } catch (error) {
-            console.error('Error in getDebtorCallsByIdentifier:', error);
-            throw error;
-        }
     }
 
 
@@ -1060,16 +1063,9 @@ extractPhoneFromEdrData(edrData) {
         }
     }
 
-    // Оновити адресу боржника (тільки для dobromyl)
+    // Оновити адресу боржника
     async updateDebtorAddress(request) {
         try {
-            // Перевіряємо чи це dobromyl - таблиця ower.address існує тільки для цієї громади
-            const communityName = await this.getCommunityName();
-            const isDobromyl = communityName?.toLowerCase() === 'dobromyl';
-            if (!isDobromyl) {
-                throw { statusCode: 400, message: 'Функція адрес недоступна для цієї громади' };
-            }
-
             const { debtorId } = request.params;
             const { address } = request.body;
 
@@ -1089,16 +1085,9 @@ extractPhoneFromEdrData(edrData) {
         }
     }
 
-    // Видалити адресу боржника (тільки для dobromyl)
+    // Видалити адресу боржника
     async deleteDebtorAddress(request) {
         try {
-            // Перевіряємо чи це dobromyl - таблиця ower.address існує тільки для цієї громади
-            const communityName = await this.getCommunityName();
-            const isDobromyl = communityName?.toLowerCase() === 'dobromyl';
-            if (!isDobromyl) {
-                throw { statusCode: 400, message: 'Функція адрес недоступна для цієї громади' };
-            }
-
             const { debtorId } = request.params;
 
             if (!debtorId) {
